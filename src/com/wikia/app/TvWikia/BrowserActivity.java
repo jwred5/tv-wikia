@@ -4,6 +4,8 @@ import android.os.Bundle;
 import android.app.Activity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.Window;
+import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.support.v4.app.NavUtils;
@@ -56,20 +58,31 @@ public class BrowserActivity extends Activity {
 	
 	//Set up the WebView with settings
 	private void setupWebView(){
-
+		
 		//Create the webview
 		webview = new WebView(this);
 		
+		//Enable Javascript
+		webview.getSettings().setJavaScriptEnabled(true);
+		
+		//Override Urls so that they don't ask to switch apps
 		webview.setWebViewClient(new WebViewClient(){
 			@Override
 			public boolean shouldOverrideUrlLoading(WebView view, String url){
 				view.loadUrl(url);
 				return true;
 			}
+			
 		});
-		
-		//Enable Javascript
-		webview.getSettings().setJavaScriptEnabled(true);
+		//Show progress of page load
+		final Activity activity = this;
+		getWindow().requestFeature(Window.FEATURE_PROGRESS);
+		webview.setWebChromeClient(new WebChromeClient(){
+			@Override
+			public void onProgressChanged(WebView view, int progress){
+				activity.setProgress(progress * 1000);
+			}
+		});
 	}
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -91,7 +104,12 @@ public class BrowserActivity extends Activity {
 			//
 			NavUtils.navigateUpFromSameTask(this);
 			return true;
+		case R.id.action_settings:
+			Intent intent = new Intent(this, SettingsActivity.class);
+			startActivity(intent);
+			return true;
 		}
+			
 		return super.onOptionsItemSelected(item);
 	}
 

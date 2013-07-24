@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+    <EditTextPreference 
+        android:key="tardis_season"
+        android:title="@string/pref_season"
+        android:summary="@string/pref_season_summary"
+        android:defaultValue="NA" />
+	<EditTextPreference 
+        android:key="tardis_episode"
+        android:title="@string/pref_episode"
+        android:summary="@string/pref_episode_summary"
+        android:defaultValue="NA" />
+</PreferenceScreen>

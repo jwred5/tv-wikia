@@ -3,7 +3,12 @@
 
     <string name="app_name">TV Wikia</string>
     <string name="action_settings">Settings</string>
-    <string name="hello_world">Hello world!</string>
+    <string name="pref_ringtone_silent">(None)</string>
     <string name="title_activity_browser">BrowserActivity</string>
-
+    <string name="pref_season">Season</string>
+    <string name="pref_season_summary">What season are you on?</string>
+    <string name="pref_episode">Episode</string>
+    <string name="pref_episode_summary">What episode are you on?</string>
+	<string name="title_activity_settings">Settings</string>
+	<string name="pref_header_general">General</string>
 </resources>
