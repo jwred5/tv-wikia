@@ -26,6 +26,7 @@ public class DbBaseAdapter {
 				Shows.COLUMN_NAME_TVDB_ID 		+ " INTEGER," +
 				Shows.COLUMN_NAME_USER_SEASON 	+ " INTEGER," +
 				Shows.COLUMN_NAME_USER_EPISODE 	+ " INTEGER," +
+				Shows.COLUMN_NAME_USER_DATE		+ " DATE," +
 				Shows.COLUMN_NAME_HIDDEN 		+ " BOOLEAN" +
 			")";
 	

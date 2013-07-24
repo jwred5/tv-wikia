@@ -14,6 +14,7 @@ public final class TvWikiaContract {
 		public static final String COLUMN_NAME_TVDB_ID = "tvdb_id";
 		public static final String COLUMN_NAME_USER_SEASON = "user_season";
 		public static final String COLUMN_NAME_USER_EPISODE = "user_episode";
+		public static final String COLUMN_NAME_USER_DATE = "user_date";
 		public static final String COLUMN_NAME_HIDDEN = "hidden";
 		
 	}

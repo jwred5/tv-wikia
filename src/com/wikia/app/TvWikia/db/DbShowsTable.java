@@ -1,6 +1,9 @@
 package com.wikia.app.TvWikia.db;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 
 import com.wikia.app.TvWikia.TvWikiaContract.Shows;
 
@@ -8,8 +11,10 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.util.Log;
 
 public class DbShowsTable extends DbBaseAdapter {
+	private static final String TAG = "DbShowsTable";
 	
 	// Define a projection that specifies which columns from the database
 	// you will actually use after this query.
@@ -21,6 +26,7 @@ public class DbShowsTable extends DbBaseAdapter {
 	    Shows.COLUMN_NAME_TVDB_ID,
 	    Shows.COLUMN_NAME_USER_SEASON,
 	    Shows.COLUMN_NAME_USER_EPISODE,
+	    Shows.COLUMN_NAME_USER_DATE,
 	    Shows.COLUMN_NAME_HIDDEN
 	};
 	
@@ -143,6 +149,7 @@ public class DbShowsTable extends DbBaseAdapter {
 			getInteger(c, Shows.COLUMN_NAME_TVDB_ID),
 			getInteger(c, Shows.COLUMN_NAME_USER_SEASON),
 			getInteger(c, Shows.COLUMN_NAME_USER_EPISODE),
+			getText(c, Shows.COLUMN_NAME_USER_DATE),
 			(getInteger(c, Shows.COLUMN_NAME_HIDDEN) > 0)
 		);
 	}
@@ -164,10 +171,11 @@ public class DbShowsTable extends DbBaseAdapter {
 		public final int tvdbId;
 		public final int userSeason;
 		public final int userEpisode;
+		public final Date userDate;
 		public final boolean hidden;
 		
 		public Show(int id, String title, String wikiaUrl, String bannerUrl, int tvdbId,
-				int userSeason, int userEpisode, boolean hidden) {
+				int userSeason, int userEpisode, String userDate, boolean hidden) {
 			super();
 			this.id = id;
 			this.title = title;
@@ -176,6 +184,15 @@ public class DbShowsTable extends DbBaseAdapter {
 			this.tvdbId = tvdbId;
 			this.userSeason = userSeason;
 			this.userEpisode = userEpisode;
+			Date uDate = null;
+			if(userDate != null){
+				try {
+					uDate = new SimpleDateFormat("yyyy-MM-dd").parse(userDate);
+				} catch (ParseException e) {
+					Log.w(TAG, "Could not parse date from database: " + userDate);
+				}
+			}
+			this.userDate = uDate;
 			this.hidden = hidden;
 		}
 		
