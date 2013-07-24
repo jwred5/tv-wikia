@@ -2,9 +2,6 @@ package com.wikia.app.TvWikia;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -17,7 +14,7 @@ public class EpisodeParser {
 	
 	private static final String ns = null;
 	
-	public List parse(InputStream in) throws XmlPullParserException, IOException{
+	public List<Entry> parse(InputStream in) throws XmlPullParserException, IOException{
 		try{
 			//Instantiate the pull parser
 			XmlPullParser parser = Xml.newPullParser();
@@ -36,8 +33,8 @@ public class EpisodeParser {
 		}
 	}
 
-	private List readFeed(XmlPullParser parser) throws XmlPullParserException, IOException {
-		List entries = new ArrayList();
+	private List<Entry> readFeed(XmlPullParser parser) throws XmlPullParserException, IOException {
+		List<Entry> entries = new ArrayList<Entry>();
 		//Set 'Data' as the overall tag
 		parser.require(XmlPullParser.START_TAG, ns, "Data");
 		while(parser.next() != XmlPullParser.END_TAG){

@@ -21,6 +21,7 @@ public class DbBaseAdapter {
 			"CREATE TABLE " + Shows.TABLE_NAME + " (" +
 				Shows._ID 						+ " INTEGER PRIMARY KEY AUTOINCREMENT," +
 				Shows.COLUMN_NAME_TITLE 		+ " TEXT," +
+				Shows.COLUMN_NAME_WIKIA_URL 	+ " TEXT," +
 				Shows.COLUMN_NAME_BANNER_URL 	+ " TEXT," +
 				Shows.COLUMN_NAME_TVDB_ID 		+ " INTEGER," +
 				Shows.COLUMN_NAME_USER_SEASON 	+ " INTEGER," +
@@ -58,7 +59,8 @@ public class DbBaseAdapter {
 			
 			ContentValues values = new ContentValues();
 			values.put(Shows.COLUMN_NAME_TITLE, "Doctor Who");
-			values.put(Shows.COLUMN_NAME_BANNER_URL, "");
+			values.put(Shows.COLUMN_NAME_WIKIA_URL, "http://tardis.wikia.com");
+			values.put(Shows.COLUMN_NAME_BANNER_URL, "http://images2.wikia.nocookie.net/__cb159/tardis/images/8/89/Wiki-wordmark.png");
 			values.put(Shows.COLUMN_NAME_TVDB_ID, "78804");
 			values.put(Shows.COLUMN_NAME_USER_SEASON, "-1");
 			values.put(Shows.COLUMN_NAME_USER_EPISODE, "-1");

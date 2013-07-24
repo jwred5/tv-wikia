@@ -23,10 +23,12 @@ public class DbShowsTable extends DbBaseAdapter {
 	    Shows.COLUMN_NAME_USER_EPISODE,
 	    Shows.COLUMN_NAME_HIDDEN
 	};
+	
 	public DbShowsTable(Context context){
 		super(context);
 	}
 	
+	//Get a Show record by its database id
 	public Show getShow(int id){
 		SQLiteDatabase db = openDb();
 		final String selection = Shows._ID + " = ?";
@@ -40,13 +42,15 @@ public class DbShowsTable extends DbBaseAdapter {
 			    null,				// don't filter by row groups
 			    null				// The sort order
 				);
-		
-		c.moveToFirst();
-		Show show = parseShow(c);
+
+		Show show = null;
+		if(c.moveToFirst())
+			show = parseShow(c);
 		closeDb();
 		return show;
 	}
 	
+	//Create an ArrayList of all the Shows in the database
 	public ArrayList<Show> listShows(){
 		SQLiteDatabase db = openDb();
 		final String sortOrder =
@@ -68,27 +72,68 @@ public class DbShowsTable extends DbBaseAdapter {
 		return shows;
 	}
 	
+	// Updates the show given.
+	// Uses the id of the show to look up the record, then updates any values that are different
+	// than the database
 	public boolean updateShow(Show show){
-		SQLiteDatabase db = openDb();
-		ContentValues values = getShow(show.id).diff(show);
 		boolean success;
-		if(values.size() > 0){
-			final String selection = Shows._ID + " = ?";
-			final String[] selectionArgs = {String.valueOf(show.id)};
-			int count = db.update(
-				    Shows.TABLE_NAME,
-				    values,
-				    selection,
-				    selectionArgs);
-			success = (count == 1);
+		SQLiteDatabase db = openDb();
+		//Get the old record out of the database
+		Show oldShow = getShow(show.id);
+		//If the old show didn't exists, fail
+		if(oldShow != null){
+			ContentValues values = oldShow.diff(show);
+			if(values.size() > 0){
+				final String selection = Shows._ID + " = ?";
+				final String[] selectionArgs = {String.valueOf(show.id)};
+				int count = db.update(
+					    Shows.TABLE_NAME,
+					    values,
+					    selection,
+					    selectionArgs);
+				success = (count == 1);
+			}
+			else
+				success = true;
 		}
-		else
-			success = true;
-		
+		else{
+			success = false;
+		}
 		closeDb();
 		return success;
 	}
 	
+	//Figure out which show is loaded by its url
+	public Show findShowByUrl(String url){
+		//Trim the url to its base domain name
+		String[] split = url.split("/http:\\/\\/[^\\/]*\\//");
+		String urlBase = split[0] + "%";
+		SQLiteDatabase db = openDb();
+
+		final String selection = Shows.COLUMN_NAME_WIKIA_URL + " LIKE ?";
+		final String[] selectionArgs = {urlBase};
+		Cursor c = db.query(    
+				Shows.TABLE_NAME,	// The table to query
+				fullProjection,		// The columns to return
+			    selection,			// The columns for the WHERE clause
+			    selectionArgs,		// The values for the WHERE clause
+			    null,				// don't group the rows
+			    null,				// don't filter by row groups
+			    null				// The sort order
+				);
+		Show show = null;
+		if(c.moveToFirst())
+			show = parseShow(c);
+		closeDb();
+		return show;
+	}
+	
+	
+	/*
+	 *  PRIVATE METHODS
+	 */
+	
+	//Convenience method for turning the record the cursor is pointing to into a Show Object
 	private Show parseShow(Cursor c){
 		return new Show(
 			getInteger(c, Shows._ID),
@@ -102,6 +147,7 @@ public class DbShowsTable extends DbBaseAdapter {
 		);
 	}
 	
+	//Convenience methods for extracting value from the record the cursor is pointing to
 	private int getInteger(Cursor c, String columnName){
 		return c.getInt(c.getColumnIndexOrThrow(columnName));
 	}
@@ -109,6 +155,7 @@ public class DbShowsTable extends DbBaseAdapter {
 		return c.getString(c.getColumnIndexOrThrow(columnName));
 	}
 	
+	//Class representing a Show in this App
 	public static class Show{
 		public final int id;
 		public final String title;

@@ -1,7 +1,11 @@
 package com.wikia.app.TvWikia;
 
+import com.wikia.app.TvWikia.db.DbShowsTable;
+import com.wikia.app.TvWikia.db.DbShowsTable.Show;
+
 import android.os.Bundle;
 import android.app.Activity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.Window;
@@ -15,12 +19,41 @@ import android.os.Build;
 
 public class BrowserActivity extends Activity {
 
+	private static final String TAG = "BrowserActivity";
+	
+	public static final String SHOW_ID_MESSAGE = "SHOW_ID";
+	
 	WebView webview;
+	private Show mShow;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
+		//Figure out what show we are looking at
+		Intent intent = getIntent();
+		
+        final String action = intent.getAction();
+    	//Get the URL passed in to the intent
+        final String url = intent.getDataString();
+        final DbShowsTable showsTable = new DbShowsTable(getBaseContext());
+        
+		int showId = intent.getIntExtra(SHOW_ID_MESSAGE, -1);
+		if(showId > 0){
+			mShow = showsTable.getShow(showId);
+		}
+		else{
+			//See if we can determine it from the URL.findShowByUrl(url);
+			mShow = showsTable.findShowByUrl(url);
+		}
+		if(mShow == null){
+			Log.w(TAG, "Could not identify what show this is (id: " + showId + ", url: " + url +")");
+		}
+		else{
+			Log.i(TAG, "We found out that this show is " + mShow.title + " (id: " + showId + ", url: " + url +")");
+			
+			//Lookup what date in the past we need to show from
+		}
 		//Create the WebView
 		setupWebView();
 		
@@ -28,12 +61,7 @@ public class BrowserActivity extends Activity {
 		setContentView(webview);
 		
 		//Load the data into the view
-		Intent intent = getIntent();
-        final String action = intent.getAction();
-        final String url;
         if (Intent.ACTION_VIEW.equals(action)) {
-        	//Get the URL passed in to the intent
-        	url = intent.getDataString();
         	//Load the URL
     		webview.loadUrl(url);
             
