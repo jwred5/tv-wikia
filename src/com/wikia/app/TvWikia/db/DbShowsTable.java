@@ -7,10 +7,12 @@ import java.util.Date;
 
 import com.wikia.app.TvWikia.TvWikiaContract.Shows;
 
+import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.text.format.DateFormat;
 import android.util.Log;
 
 public class DbShowsTable extends DbBaseAdapter {
@@ -19,7 +21,7 @@ public class DbShowsTable extends DbBaseAdapter {
 	// Define a projection that specifies which columns from the database
 	// you will actually use after this query.
 	private final String[] fullProjection = {
-	    Shows._ID,
+		Shows._ID,
 	    Shows.COLUMN_NAME_TITLE,
 	    Shows.COLUMN_NAME_WIKIA_URL,
 	    Shows.COLUMN_NAME_BANNER_URL,
@@ -154,14 +156,6 @@ public class DbShowsTable extends DbBaseAdapter {
 		);
 	}
 	
-	//Convenience methods for extracting value from the record the cursor is pointing to
-	private int getInteger(Cursor c, String columnName){
-		return c.getInt(c.getColumnIndexOrThrow(columnName));
-	}
-	private String getText(Cursor c, String columnName){
-		return c.getString(c.getColumnIndexOrThrow(columnName));
-	}
-	
 	//Class representing a Show in this App
 	public static class Show{
 		public final int id;
@@ -174,6 +168,7 @@ public class DbShowsTable extends DbBaseAdapter {
 		public final Date userDate;
 		public final boolean hidden;
 		
+		@SuppressLint("SimpleDateFormat")
 		public Show(int id, String title, String wikiaUrl, String bannerUrl, int tvdbId,
 				int userSeason, int userEpisode, String userDate, boolean hidden) {
 			super();
@@ -216,6 +211,9 @@ public class DbShowsTable extends DbBaseAdapter {
 			}
 			if(other.userEpisode != this.userEpisode){
 				differences.put(Shows.COLUMN_NAME_USER_EPISODE, String.valueOf( other.userEpisode ));
+			}
+			if(!other.userDate.equals(this.userDate)){
+				differences.put(Shows.COLUMN_NAME_USER_DATE, DateFormat.format("yyyy-MM-dd", other.userDate).toString());
 			}
 			if(other.hidden != this.hidden){
 				differences.put(Shows.COLUMN_NAME_HIDDEN, String.valueOf( other.hidden ));

@@ -19,4 +19,13 @@ public final class TvWikiaContract {
 		
 	}
 
+	public static abstract class Episodes implements BaseColumns{
+		public static final String TABLE_NAME = "episodes";
+		public static final String COLUMN_NAME_SHOW_ID = "show_id";
+		public static final String COLUMN_NAME_TITLE = "title";
+		public static final String COLUMN_NAME_SEASON = "season";
+		public static final String COLUMN_NAME_EPISODE = "episode";
+		public static final String COLUMN_NAME_AIRDATE = "airdate";
+		
+	}
 }

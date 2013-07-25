@@ -13,6 +13,7 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.support.v4.app.NavUtils;
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Intent;
 import android.os.Build;
@@ -85,6 +86,7 @@ public class BrowserActivity extends Activity {
 	}
 	
 	//Set up the WebView with settings
+	@SuppressLint("SetJavaScriptEnabled")
 	private void setupWebView(){
 		
 		//Create the webview

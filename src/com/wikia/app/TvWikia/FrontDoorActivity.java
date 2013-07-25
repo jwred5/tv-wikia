@@ -1,8 +1,6 @@
 package com.wikia.app.TvWikia;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
 import java.util.ArrayList;
 
 import org.apache.http.HttpEntity;
@@ -15,6 +13,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 
 import com.wikia.app.TvWikia.db.DbShowsTable;
+import com.wikia.app.TvWikia.db.PopulateShowEpisodesTask;
 import com.wikia.app.TvWikia.db.DbShowsTable.Show;
 
 import android.net.Uri;
@@ -43,6 +42,7 @@ public class FrontDoorActivity extends Activity {
 		ArrayList<Show> shows = new DbShowsTable(getBaseContext()).listShows();
 		for(Show s : shows){
 			new CreateBannerTask().execute(s);
+			new PopulateShowEpisodesTask(getApplicationContext()).execute(s);
 		}
 	}
 

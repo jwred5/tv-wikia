@@ -1,4 +1,4 @@
-package com.wikia.app.TvWikia;
+package com.wikia.app.TvWikia.db;
 
 import java.util.ArrayList;
 import java.util.List;
