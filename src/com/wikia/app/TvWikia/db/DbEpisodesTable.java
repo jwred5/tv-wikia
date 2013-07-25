@@ -2,7 +2,6 @@ package com.wikia.app.TvWikia.db;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 
 import com.wikia.app.TvWikia.TvWikiaContract.Episodes;
@@ -33,14 +32,16 @@ public class DbEpisodesTable extends DbBaseAdapter {
 		super(context);
 	}
 	
-	//Get a Episode record by its database id
-	public Episode getEpisode(int id){
+	//Find the internal id of the episode by its show, season, and episode
+	public int getEpisodeId(int showId, int season, int episode){
+
 		SQLiteDatabase db = openDb();
-		final String selection = Episodes._ID + " = ?";
-		final String[] selectionArgs = {String.valueOf(id)};
+		final String selection = Episodes.COLUMN_NAME_SHOW_ID + " = ? AND " + Episodes.COLUMN_NAME_SEASON + " = ? AND " + Episodes.COLUMN_NAME_EPISODE + " = ?";
+		final String[] selectionArgs = {String.valueOf(showId), String.valueOf(season), String.valueOf(episode)};
+		final String[] idProjection = {Episodes._ID};
 		Cursor c = db.query(    
 				Episodes.TABLE_NAME,	// The table to query
-				fullProjection,		// The columns to return
+				idProjection,		// The columns to return
 			    selection,			// The columns for the WHERE clause
 			    selectionArgs,		// The values for the WHERE clause
 			    null,				// don't group the rows
@@ -48,104 +49,44 @@ public class DbEpisodesTable extends DbBaseAdapter {
 			    null				// The sort order
 				);
 
-		Episode episode = null;
+		int episodeId = -1;
 		if(c.moveToFirst())
-			episode = parseEpisode(c);
+			episodeId = getInteger(c, Episodes._ID);
 		closeDb();
-		return episode;
-	}
-	
-	//Create an ArrayList of all the Episodes in the database
-	public ArrayList<Episode> listEpisodes(){
-		SQLiteDatabase db = openDb();
-		final String sortOrder =
-				Episodes._ID + " ASC";
-		Cursor c = db.query(    
-				Episodes.TABLE_NAME,	// The table to query
-				fullProjection,		// The columns to return
-			    null,				// The columns for the WHERE clause
-			    null,				// The values for the WHERE clause
-			    null,				// don't group the rows
-			    null,				// don't filter by row groups
-			    sortOrder			// The sort order
-				);
-		ArrayList<Episode> episodes = new ArrayList<Episode>();
-		while(c.moveToNext()){
-			episodes.add(parseEpisode(c));
-		}
-		closeDb();
-		return episodes;
-	}
-	
-	// Updates the Episode given.
-	// Uses the id of the show to look up the record, then updates any values that are different
-	// than the database
-	public boolean updateEpisode(Episode episode){
-		boolean success;
-		SQLiteDatabase db = openDb();
-		//Get the old record out of the database
-		Episode oldEpisode = getEpisode(episode.id);
-		//If the old Episode didn't exists, fail
-		if(oldEpisode != null){
-			ContentValues values = oldEpisode.diff(episode);
-			if(values.size() > 0){
-				final String selection = Episodes._ID + " = ?";
-				final String[] selectionArgs = {String.valueOf(episode.id)};
-				int count = db.update(
-						Episodes.TABLE_NAME,
-					    values,
-					    selection,
-					    selectionArgs);
-				success = (count == 1);
-			}
-			else
-				success = true;
-		}
-		else{
-			success = false;
-		}
-		closeDb();
-		return success;
+		return episodeId;
 	}
 
-	// Updates the Episode given.
-	// Uses the id of the show to look up the record, then updates any values that are different
-	// than the database
-	public boolean insertEpisode(Episode episode){
-		boolean success;
-		SQLiteDatabase db = openDb();
-		ContentValues values = new Episode(-1, -1, null, -1, -1, null).diff(episode);
-		if(values.size() > 0){
-			long count = db.insert(
-					Episodes.TABLE_NAME,
-				    Episodes.COLUMN_NAME_TITLE,
-				    values);
-			success = (count > 0);
-		}
-		else
-			success = false;
-		closeDb();
-		return success;
+	@Override
+	protected Record parseRecord(Cursor c) {
+		return new Episode(
+				getInteger(c, Episodes._ID),
+				getInteger(c, Episodes.COLUMN_NAME_SHOW_ID),
+				getText(c, Episodes.COLUMN_NAME_TITLE),
+				getInteger(c, Episodes.COLUMN_NAME_SEASON),
+				getInteger(c, Episodes.COLUMN_NAME_EPISODE),
+				getText(c, Episodes.COLUMN_NAME_AIRDATE)
+			);
+	}
+	@Override
+	protected String myIdColumn() {
+		return Episodes._ID;
+	}
+
+	@Override
+	protected String myTableName() {
+		return Episodes.TABLE_NAME;
+	}
+
+	@Override
+	protected String[] myFullProjection() {
+		return fullProjection;
 	}
 	/*
 	 *  PRIVATE METHODS
 	 */
 	
-	//Convenience method for turning the record the cursor is pointing to into a Episode Object
-	private Episode parseEpisode(Cursor c){
-		return new Episode(
-			getInteger(c, Episodes._ID),
-			getInteger(c, Episodes.COLUMN_NAME_SHOW_ID),
-			getText(c, Episodes.COLUMN_NAME_TITLE),
-			getInteger(c, Episodes.COLUMN_NAME_SEASON),
-			getInteger(c, Episodes.COLUMN_NAME_EPISODE),
-			getText(c, Episodes.COLUMN_NAME_AIRDATE)
-		);
-	}
-	
 	//Class representing a Episode in this App
-	public static class Episode{
-		public final int id;
+	public class Episode extends Record{
 		public final int showId;
 		public final String title;
 		public final int season;
@@ -155,14 +96,13 @@ public class DbEpisodesTable extends DbBaseAdapter {
 		@SuppressLint("SimpleDateFormat")
 		public Episode(int id, int showId, String title, int season,
 				int episode, String airdate) {
-			super();
-			this.id = id;
+			super(id);
 			this.showId = showId;
 			this.title = title;
 			this.season = season;
 			this.episode = episode;
 			Date aDate = null;
-			if(airdate != null){
+			if(airdate != null && !airdate.equals("")){
 				try {
 					aDate = new SimpleDateFormat("yyyy-MM-dd").parse(airdate);
 				} catch (ParseException e) {
@@ -172,8 +112,10 @@ public class DbEpisodesTable extends DbBaseAdapter {
 			this.airdate = aDate;
 		}
 		
+		
 		//Compare this Episode to another and get the ContentValues of what would need to be updated 
-		public ContentValues diff(Episode other){
+		protected ContentValues diff(Record o){
+			Episode other = (Episode) o;
 			ContentValues differences = new ContentValues();
 			if(other.showId != this.showId){
 				differences.put(Episodes.COLUMN_NAME_SHOW_ID, String.valueOf( other.showId ));
@@ -190,6 +132,21 @@ public class DbEpisodesTable extends DbBaseAdapter {
 			if(!other.airdate.equals(this.airdate)){
 				differences.put(Episodes.COLUMN_NAME_AIRDATE, DateFormat.format("yyyy-MM-dd", other.airdate).toString());
 			}
+			return differences;
+		}
+
+
+		@Override
+		protected ContentValues getContentValues() {
+			ContentValues differences = new ContentValues();
+			differences.put(Episodes.COLUMN_NAME_SHOW_ID, String.valueOf( this.showId ));
+			differences.put(Episodes.COLUMN_NAME_TITLE, this.title);
+			differences.put(Episodes.COLUMN_NAME_SEASON, String.valueOf( this.season ));
+			differences.put(Episodes.COLUMN_NAME_EPISODE, String.valueOf( this.episode ));
+			differences.put(Episodes.COLUMN_NAME_AIRDATE,
+					(this.airdate != null && !this.airdate.equals(""))?
+						DateFormat.format("yyyy-MM-dd", this.airdate).toString() : null
+			);
 			return differences;
 		}
 	}

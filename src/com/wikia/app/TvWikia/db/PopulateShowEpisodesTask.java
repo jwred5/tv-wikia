@@ -8,7 +8,6 @@ import java.util.List;
 
 import org.xmlpull.v1.XmlPullParserException;
 
-import com.wikia.app.TvWikia.db.DbEpisodesTable.Episode;
 import com.wikia.app.TvWikia.db.DbShowsTable.Show;
 import com.wikia.app.TvWikia.db.EpisodeParser.Entry;
 
@@ -56,9 +55,20 @@ public class PopulateShowEpisodesTask extends AsyncTask<Show, Void, Void> {
 		
 		Log.i(TAG, "Generating Records");
 		DbEpisodesTable episodesTable = new DbEpisodesTable(mContext);
-		for (Entry e : entries) {       
-			Log.i(TAG, "Generating Record for " + show.title + " S" + e.season + "E" + e.episode);
-			episodesTable.insertEpisode(new Episode(-1, show.id, e.title, e.season, e.episode, e.airdate));
+		for (Entry e : entries) {
+			//ignore episodes that haven't aired yet
+			if(e.airdate != null && !e.airdate.equals("")){
+				//Check if this episode is already in our table
+				int episodeId = episodesTable.getEpisodeId(show.id, e.season, e.episode);
+				if(episodeId < 0){
+					Log.i(TAG, "Generating Record for " + show.title + " S" + e.season + "E" + e.episode);
+					episodesTable.insert(episodesTable.new Episode(-1, show.id, e.title, e.season, e.episode, e.airdate));
+				}
+				else{
+					Log.i(TAG, "Updating Record for " + show.title + " S" + e.season + "E" + e.episode);
+					episodesTable.update(episodesTable.new Episode(episodeId, show.id, e.title, e.season, e.episode, e.airdate));
+				}
+			}
 		}
 		Log.i(TAG, "Records Generated");
 		     return;

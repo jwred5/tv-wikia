@@ -12,6 +12,7 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 
+import com.wikia.app.TvWikia.db.DbBaseAdapter.Record;
 import com.wikia.app.TvWikia.db.DbShowsTable;
 import com.wikia.app.TvWikia.db.PopulateShowEpisodesTask;
 import com.wikia.app.TvWikia.db.DbShowsTable.Show;
@@ -39,10 +40,10 @@ public class FrontDoorActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_front_door);
-		ArrayList<Show> shows = new DbShowsTable(getBaseContext()).listShows();
-		for(Show s : shows){
-			new CreateBannerTask().execute(s);
-			new PopulateShowEpisodesTask(getApplicationContext()).execute(s);
+		ArrayList<Record> shows = new DbShowsTable(getBaseContext()).list();
+		for(Record s : shows){
+			new CreateBannerTask().execute((Show) s);
+			new PopulateShowEpisodesTask(getApplicationContext()).execute((Show) s);
 		}
 	}
 

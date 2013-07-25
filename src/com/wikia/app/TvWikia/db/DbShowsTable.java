@@ -2,7 +2,6 @@ package com.wikia.app.TvWikia.db;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 
 import com.wikia.app.TvWikia.TvWikiaContract.Shows;
@@ -36,81 +35,6 @@ public class DbShowsTable extends DbBaseAdapter {
 		super(context);
 	}
 	
-	//Get a Show record by its database id
-	public Show getShow(int id){
-		SQLiteDatabase db = openDb();
-		final String selection = Shows._ID + " = ?";
-		final String[] selectionArgs = {String.valueOf(id)};
-		Cursor c = db.query(    
-				Shows.TABLE_NAME,	// The table to query
-				fullProjection,		// The columns to return
-			    selection,			// The columns for the WHERE clause
-			    selectionArgs,		// The values for the WHERE clause
-			    null,				// don't group the rows
-			    null,				// don't filter by row groups
-			    null				// The sort order
-				);
-
-		Show show = null;
-		if(c.moveToFirst())
-			show = parseShow(c);
-		closeDb();
-		return show;
-	}
-	
-	//Create an ArrayList of all the Shows in the database
-	public ArrayList<Show> listShows(){
-		SQLiteDatabase db = openDb();
-		final String sortOrder =
-			    Shows._ID + " ASC";
-		Cursor c = db.query(    
-				Shows.TABLE_NAME,	// The table to query
-				fullProjection,		// The columns to return
-			    null,				// The columns for the WHERE clause
-			    null,				// The values for the WHERE clause
-			    null,				// don't group the rows
-			    null,				// don't filter by row groups
-			    sortOrder			// The sort order
-				);
-		ArrayList<Show> shows = new ArrayList<Show>();
-		while(c.moveToNext()){
-			shows.add(parseShow(c));
-		}
-		closeDb();
-		return shows;
-	}
-	
-	// Updates the show given.
-	// Uses the id of the show to look up the record, then updates any values that are different
-	// than the database
-	public boolean updateShow(Show show){
-		boolean success;
-		SQLiteDatabase db = openDb();
-		//Get the old record out of the database
-		Show oldShow = getShow(show.id);
-		//If the old show didn't exists, fail
-		if(oldShow != null){
-			ContentValues values = oldShow.diff(show);
-			if(values.size() > 0){
-				final String selection = Shows._ID + " = ?";
-				final String[] selectionArgs = {String.valueOf(show.id)};
-				int count = db.update(
-					    Shows.TABLE_NAME,
-					    values,
-					    selection,
-					    selectionArgs);
-				success = (count == 1);
-			}
-			else
-				success = true;
-		}
-		else{
-			success = false;
-		}
-		closeDb();
-		return success;
-	}
-	
 	//Figure out which show is loaded by its url
 	public Show findShowByUrl(String url){
 		//Trim the url to its base domain name
@@ -131,34 +55,43 @@ public class DbShowsTable extends DbBaseAdapter {
 				);
 		Show show = null;
 		if(c.moveToFirst())
-			show = parseShow(c);
+			show = (Show) parseRecord(c);
 		closeDb();
 		return show;
 	}
-	
-	
-	/*
-	 *  PRIVATE METHODS
-	 */
-	
-	//Convenience method for turning the record the cursor is pointing to into a Show Object
-	private Show parseShow(Cursor c){
+
+	@Override
+	protected Record parseRecord(Cursor c) {
 		return new Show(
-			getInteger(c, Shows._ID),
-			getText(c, Shows.COLUMN_NAME_TITLE),
-			getText(c, Shows.COLUMN_NAME_WIKIA_URL),
-			getText(c, Shows.COLUMN_NAME_BANNER_URL),
-			getInteger(c, Shows.COLUMN_NAME_TVDB_ID),
-			getInteger(c, Shows.COLUMN_NAME_USER_SEASON),
-			getInteger(c, Shows.COLUMN_NAME_USER_EPISODE),
-			getText(c, Shows.COLUMN_NAME_USER_DATE),
-			(getInteger(c, Shows.COLUMN_NAME_HIDDEN) > 0)
-		);
+				getInteger(c, Shows._ID),
+				getText(c, Shows.COLUMN_NAME_TITLE),
+				getText(c, Shows.COLUMN_NAME_WIKIA_URL),
+				getText(c, Shows.COLUMN_NAME_BANNER_URL),
+				getInteger(c, Shows.COLUMN_NAME_TVDB_ID),
+				getInteger(c, Shows.COLUMN_NAME_USER_SEASON),
+				getInteger(c, Shows.COLUMN_NAME_USER_EPISODE),
+				getText(c, Shows.COLUMN_NAME_USER_DATE),
+				(getInteger(c, Shows.COLUMN_NAME_HIDDEN) > 0)
+			);
+	}
+
+	@Override
+	protected String myIdColumn() {
+		return Shows._ID;
+	}
+
+	@Override
+	protected String myTableName() {
+		return Shows.TABLE_NAME;
+	}
+
+	@Override
+	protected String[] myFullProjection() {
+		return fullProjection;
 	}
 	
 	//Class representing a Show in this App
-	public static class Show{
-		public final int id;
+	public class Show extends Record{
 		public final String title;
 		public final String wikiaUrl;
 		public final String bannerUrl;
@@ -171,8 +104,7 @@ public class DbShowsTable extends DbBaseAdapter {
 		@SuppressLint("SimpleDateFormat")
 		public Show(int id, String title, String wikiaUrl, String bannerUrl, int tvdbId,
 				int userSeason, int userEpisode, String userDate, boolean hidden) {
-			super();
-			this.id = id;
+			super(id);
 			this.title = title;
 			this.wikiaUrl = wikiaUrl;
 			this.bannerUrl = bannerUrl;
@@ -180,7 +112,7 @@ public class DbShowsTable extends DbBaseAdapter {
 			this.userSeason = userSeason;
 			this.userEpisode = userEpisode;
 			Date uDate = null;
-			if(userDate != null){
+			if(userDate != null && !userDate.equals("")){
 				try {
 					uDate = new SimpleDateFormat("yyyy-MM-dd").parse(userDate);
 				} catch (ParseException e) {
@@ -192,7 +124,8 @@ public class DbShowsTable extends DbBaseAdapter {
 		}
 		
 		//Compare this Show to another and get the ContentValues of what would need to be updated 
-		public ContentValues diff(Show other){
+		public ContentValues diff(Record o){
+			Show other = (Show) o;
 			ContentValues differences = new ContentValues();
 			if(!other.title.equals(this.title)){
 				differences.put(Shows.COLUMN_NAME_TITLE, other.title);
@@ -220,5 +153,19 @@ public class DbShowsTable extends DbBaseAdapter {
 			}
 			return differences;
 		}
+		//Compare this Show to another and get the ContentValues of what would need to be updated 
+		public ContentValues getContentValues(){
+			ContentValues values = new ContentValues();
+			values.put(Shows.COLUMN_NAME_TITLE, this.title);
+			values.put(Shows.COLUMN_NAME_BANNER_URL, this.bannerUrl);
+			values.put(Shows.COLUMN_NAME_BANNER_URL, this.bannerUrl);
+			values.put(Shows.COLUMN_NAME_TVDB_ID, String.valueOf( this.tvdbId ));
+			values.put(Shows.COLUMN_NAME_USER_SEASON, String.valueOf( this.userSeason ));
+			values.put(Shows.COLUMN_NAME_USER_EPISODE, String.valueOf( this.userEpisode ));
+			values.put(Shows.COLUMN_NAME_USER_DATE, DateFormat.format("yyyy-MM-dd", this.userDate).toString());
+			values.put(Shows.COLUMN_NAME_HIDDEN, String.valueOf( this.hidden ));
+			return values;
+		}
 	}
+
 }

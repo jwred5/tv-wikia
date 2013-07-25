@@ -41,7 +41,7 @@ public class BrowserActivity extends Activity {
         
 		int showId = intent.getIntExtra(SHOW_ID_MESSAGE, -1);
 		if(showId > 0){
-			mShow = showsTable.getShow(showId);
+			mShow = (Show) showsTable.get(showId);
 		}
 		else{
 			//See if we can determine it from the URL.findShowByUrl(url);

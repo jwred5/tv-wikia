@@ -1,5 +1,7 @@
 package com.wikia.app.TvWikia.db;
 
+import java.util.ArrayList;
+
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -10,7 +12,7 @@ import android.util.Log;
 import com.wikia.app.TvWikia.TvWikiaContract.Episodes;
 import com.wikia.app.TvWikia.TvWikiaContract.Shows;
 
-public class DbBaseAdapter {
+public abstract class DbBaseAdapter {
 	private static final String TAG = "DbBaseAdapter";
 
 	protected static final String DATABASE_NAME = "db.sqlite";
@@ -62,6 +64,104 @@ public class DbBaseAdapter {
 	public void closeDb(){
 		mDbHelper.close();
 	}
+
+	protected abstract Record parseRecord(Cursor c);
+	protected abstract String myIdColumn();
+	protected abstract String myTableName();
+	protected abstract String[] myFullProjection();
+	
+	//Get a Record by its database id
+	public Record get(int id){
+		SQLiteDatabase db = openDb();
+		final String selection = myIdColumn() + " = ?";
+		final String[] selectionArgs = {String.valueOf(id)};
+		Cursor c = db.query(    
+				myTableName(),		// The table to query
+				myFullProjection(),	// The columns to return
+			    selection,			// The columns for the WHERE clause
+			    selectionArgs,		// The values for the WHERE clause
+			    null,				// don't group the rows
+			    null,				// don't filter by row groups
+			    null				// The sort order
+				);
+
+		Record record = null;
+		if(c.moveToFirst())
+			record = parseRecord(c);
+		closeDb();
+		return record;
+	}
+	
+	//Create an ArrayList of all the Records in the database
+	public ArrayList<Record> list(){
+		SQLiteDatabase db = openDb();
+		final String sortOrder = myIdColumn() + " ASC";
+		Cursor c = db.query(    
+				myTableName(),		// The table to query
+				myFullProjection(),	// The columns to return
+			    null,				// The columns for the WHERE clause
+			    null,				// The values for the WHERE clause
+			    null,				// don't group the rows
+			    null,				// don't filter by row groups
+			    sortOrder			// The sort order
+				);
+		ArrayList<Record> records = new ArrayList<Record>();
+		while(c.moveToNext()){
+			records.add(parseRecord(c));
+		}
+		closeDb();
+		return records;
+	}
+	
+	// Updates the Record given.
+	// Uses the id of the show to look up the record, then updates any values that are different
+	// than the database
+	public boolean update(Record record){
+		boolean success;
+		SQLiteDatabase db = openDb();
+		//Get the old record out of the database
+		Record oldRecord = get(record.id);
+		//If the old Record didn't exists, fail
+		if(oldRecord != null){
+			ContentValues values = oldRecord.diff(record);
+			if(values.size() > 0){
+				final String selection = myIdColumn() + " = ?";
+				final String[] selectionArgs = {String.valueOf(record.id)};
+				int count = db.update(
+						myTableName(),
+					    values,
+					    selection,
+					    selectionArgs);
+				success = (count == 1);
+			}
+			else
+				success = true;
+		}
+		else{
+			success = false;
+		}
+		closeDb();
+		return success;
+	}
+
+	// Inserts the Record given.
+	public boolean insert(Record record){
+		Log.i(TAG, "Inserting Record");
+		boolean success;
+		SQLiteDatabase db = openDb();
+		ContentValues values = record.getContentValues();
+		if(values.size() > 0){
+			long count = db.insert(
+					myTableName(),
+				    "",
+				    values);
+			success = (count > 0);
+		}
+		else
+			success = false;
+		closeDb();
+		return success;
+	}
 	
 	//Convenience methods for extracting value from the record the cursor is pointing to
 	protected int getInteger(Cursor c, String columnName){
@@ -69,6 +169,17 @@ public class DbBaseAdapter {
 	}
 	protected String getText(Cursor c, String columnName){
 		return c.getString(c.getColumnIndexOrThrow(columnName));
+	}
+	
+	public abstract class Record{
+		public final int id;
+
+		Record(int id){
+			this.id = id;
+		}
+		
+		protected abstract ContentValues diff(Record other);
+		protected abstract ContentValues getContentValues();
 	}
 	
 	// Define static DatabaseHelper so that we will always have one connection to the DB
@@ -98,6 +209,14 @@ public class DbBaseAdapter {
 		@Override
 		public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 			Log.w(TAG, "Upgrading database from version " + oldVersion + " to " +
+	                newVersion + ", which will destroy all old data");
+	            db.execSQL(TABLE_DELETE_SHOWS);
+	            db.execSQL(TABLE_DELETE_EPISODES);
+	            onCreate(db);
+		}
+		@Override
+		public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+			Log.w(TAG, "Downgrading database from version " + oldVersion + " to " +
 	                newVersion + ", which will destroy all old data");
 	            db.execSQL(TABLE_DELETE_SHOWS);
 	            db.execSQL(TABLE_DELETE_EPISODES);
