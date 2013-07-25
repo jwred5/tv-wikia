@@ -86,7 +86,7 @@ public class DbEpisodesTable extends DbBaseAdapter {
 	 */
 	
 	//Class representing a Episode in this App
-	public class Episode extends Record{
+	public static class Episode extends Record{
 		public final int showId;
 		public final String title;
 		public final int season;

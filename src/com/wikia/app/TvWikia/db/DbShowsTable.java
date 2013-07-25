@@ -91,7 +91,7 @@ public class DbShowsTable extends DbBaseAdapter {
 	}
 	
 	//Class representing a Show in this App
-	public class Show extends Record{
+	public static class Show extends Record{
 		public final String title;
 		public final String wikiaUrl;
 		public final String bannerUrl;

@@ -1,6 +1,7 @@
 package com.wikia.app.TvWikia.db;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -8,6 +9,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
+import android.util.SparseArray;
 
 import com.wikia.app.TvWikia.TvWikiaContract.Episodes;
 import com.wikia.app.TvWikia.TvWikiaContract.Shows;
@@ -16,7 +18,7 @@ public abstract class DbBaseAdapter {
 	private static final String TAG = "DbBaseAdapter";
 
 	protected static final String DATABASE_NAME = "db.sqlite";
-	protected static final int DATABASE_VERSION = 2;
+	protected static final int DATABASE_VERSION = 1;
 	
 	protected Context mContext;
 	protected static DatabaseHelper mDbHelper;
@@ -73,6 +75,11 @@ public abstract class DbBaseAdapter {
 	//Get a Record by its database id
 	public Record get(int id){
 		SQLiteDatabase db = openDb();
+		Record r = getRecord(db, id);
+		closeDb();
+		return r;
+	}
+	private Record getRecord(SQLiteDatabase db, int id){
 		final String selection = myIdColumn() + " = ?";
 		final String[] selectionArgs = {String.valueOf(id)};
 		Cursor c = db.query(    
@@ -88,8 +95,33 @@ public abstract class DbBaseAdapter {
 		Record record = null;
 		if(c.moveToFirst())
 			record = parseRecord(c);
-		closeDb();
 		return record;
+	}
+	
+	//Get a HashMap of Records given a list of integers
+	public SparseArray<Record> get(int[] ids){
+		SparseArray<Record> records = new SparseArray<Record>();
+		final String selection = myIdColumn() + "(" + makePlaceholders(ids.length) + ")";
+		String[] selectionArgs = new String[ids.length];
+		for(int i=0; i<ids.length;i++){
+			selectionArgs[i] = String.valueOf(ids[i]);
+		}
+		SQLiteDatabase db = openDb();
+		Cursor c = db.query(    
+				myTableName(),		// The table to query
+				myFullProjection(),	// The columns to return
+				selection,				// The columns for the WHERE clause
+				selectionArgs,				// The values for the WHERE clause
+			    null,				// don't group the rows
+			    null,				// don't filter by row groups
+			    null			// The sort order
+				);
+		while(c.moveToNext()){
+			Record r = parseRecord(c);
+			records.put(r.id, r);
+		}
+		closeDb();
+		return records;
 	}
 	
 	//Create an ArrayList of all the Records in the database
@@ -119,6 +151,24 @@ public abstract class DbBaseAdapter {
 	public boolean update(Record record){
 		boolean success;
 		SQLiteDatabase db = openDb();
+		success = updateRecord(db, record);
+		closeDb();
+		return success;
+	}	
+	public int update(List<Record> records){
+		int updated = 0;
+		SQLiteDatabase db = openDb();
+		for(Record record : records){
+			if( updateRecord(db, record) ){
+				updated++;
+			}
+		}
+		closeDb();
+		return updated;
+	}
+	private boolean updateRecord(SQLiteDatabase db, Record record){
+		Log.i(TAG, "Updating Record");
+		boolean success;
 		//Get the old record out of the database
 		Record oldRecord = get(record.id);
 		//If the old Record didn't exists, fail
@@ -140,15 +190,31 @@ public abstract class DbBaseAdapter {
 		else{
 			success = false;
 		}
-		closeDb();
 		return success;
 	}
 
 	// Inserts the Record given.
 	public boolean insert(Record record){
-		Log.i(TAG, "Inserting Record");
 		boolean success;
 		SQLiteDatabase db = openDb();
+		success = insertRecord(db, record);
+		closeDb();
+		return success;
+	}
+	public int insert(List<Record> records){
+		int updated = 0;
+		SQLiteDatabase db = openDb();
+		for(Record record : records){
+			if( insertRecord(db, record) ){
+				updated++;
+			}
+		}
+		closeDb();
+		return updated;
+	}
+	private boolean insertRecord(SQLiteDatabase db, Record record){
+		Log.i(TAG, "Inserting Record");
+		boolean success;
 		ContentValues values = record.getContentValues();
 		if(values.size() > 0){
 			long count = db.insert(
@@ -159,7 +225,6 @@ public abstract class DbBaseAdapter {
 		}
 		else
 			success = false;
-		closeDb();
 		return success;
 	}
 	
@@ -170,8 +235,15 @@ public abstract class DbBaseAdapter {
 	protected String getText(Cursor c, String columnName){
 		return c.getString(c.getColumnIndexOrThrow(columnName));
 	}
-	
-	public abstract class Record{
+	//Private convenience method to make a replacement string with n questions marks
+	private String makePlaceholders(int len){
+		String placeholder = "?";
+		for(int i=1; i<len; i++){
+			placeholder = placeholder + ",";
+		}
+		return placeholder;
+	}
+	public static abstract class Record{
 		public final int id;
 
 		Record(int id){
