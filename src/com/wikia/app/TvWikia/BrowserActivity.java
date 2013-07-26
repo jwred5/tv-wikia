@@ -26,6 +26,7 @@ public class BrowserActivity extends Activity {
 	
 	WebView webview;
 	private Show mShow;
+	private String currentUrl;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -65,11 +66,12 @@ public class BrowserActivity extends Activity {
         if (Intent.ACTION_VIEW.equals(action)) {
         	//Load the URL
     		webview.loadUrl(url);
-            
+            currentUrl = url;
         }
         else{
         	//Load the no URL message
         	webview.loadData("<div>No page sent</div>", "text/html", null);
+        	currentUrl = null;
         }
 		// Show the Up button in the action bar.
 		setupActionBar();
@@ -100,6 +102,7 @@ public class BrowserActivity extends Activity {
 			@Override
 			public boolean shouldOverrideUrlLoading(WebView view, String url){
 				view.loadUrl(url);
+				currentUrl = url;
 				return true;
 			}
 			
@@ -135,7 +138,8 @@ public class BrowserActivity extends Activity {
 			NavUtils.navigateUpFromSameTask(this);
 			return true;
 		case R.id.action_settings:
-			Intent intent = new Intent(this, SettingsActivity.class);
+			Intent intent = new Intent(this, ShowSettingsActivity.class);
+			intent.putExtra(SHOW_ID_MESSAGE, mShow.id);
 			startActivity(intent);
 			return true;
 		}

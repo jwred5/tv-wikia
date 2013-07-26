@@ -7,9 +7,9 @@
     <uses-sdk
         android:minSdkVersion="8"
         android:targetSdkVersion="17" />
-    
-	<uses-permission android:name="android.permission.INTERNET" />
-	
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
@@ -31,6 +31,7 @@
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.wikia.app.TvWikia.FrontDoorActivity" />
+
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
@@ -46,6 +47,10 @@
         <activity
             android:name="com.wikia.app.TvWikia.SettingsActivity"
             android:label="@string/title_activity_settings" >
+        </activity>
+        <activity
+            android:name="com.wikia.app.TvWikia.ShowSettingsActivity"
+            android:label="@string/title_activity_show_settings" >
         </activity>
     </application>
 
