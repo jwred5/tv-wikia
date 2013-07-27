@@ -1,24 +1,19 @@
 package com.wikia.app.TvWikia;
 
+import com.wikia.app.TvWikia.EpisodeSettingsFragment.EditSeasonDialog;
+import com.wikia.app.TvWikia.EpisodeSettingsFragment.EpisodeSettingsListener;
 import com.wikia.app.TvWikia.db.DbShowsTable;
 import com.wikia.app.TvWikia.db.DbShowsTable.Show;
 
-import android.os.Build;
 import android.os.Bundle;
-import android.annotation.TargetApi;
-import android.app.Activity;
-import android.app.Fragment;
-
 import android.content.Intent;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
 
-@TargetApi(Build.VERSION_CODES.HONEYCOMB)
-public class ShowSettingsActivity extends Activity {
+public class ShowSettingsActivity extends FragmentActivity implements EpisodeSettingsListener{
 
 	private static final String TAG = "ShowSettingsActivity";
 	private Show mShow;
@@ -57,38 +52,24 @@ public class ShowSettingsActivity extends Activity {
                 return;
             }
 
-            // Create an instance of ExampleFragment
-            EpisodeSelectorFragment firstFragment = new EpisodeSelectorFragment();
+            // Create an instance of EpisodeSelectorFragment
+            EpisodeSettingsFragment firstFragment = new EpisodeSettingsFragment();
             
             // In case this activity was started with special instructions from an Intent,
             // pass the Intent's extras to the fragment as arguments
             firstFragment.setArguments(getIntent().getExtras());
             
-            // Add the fragment to the 'fragment_container' FrameLayout
-            getFragmentManager().beginTransaction()
+            // Add the fragment to the 'show_settings_container' FrameLayout
+            getSupportFragmentManager().beginTransaction()
                     .add(R.id.show_settings_container, firstFragment, "episodeSelector").commit();
         }
 	}
 	
 	public void onResume(){
 		super.onResume();
-		EpisodeSelectorFragment fragment = (EpisodeSelectorFragment) getFragmentManager().findFragmentByTag("episodeSelector");
+		EpisodeSettingsFragment fragment = (EpisodeSettingsFragment) getSupportFragmentManager().findFragmentByTag("episodeSelector");
 		fragment.setSeasonValue(String.valueOf(mShow.userSeason));
 		fragment.setEpisodeValue(String.valueOf(mShow.userEpisode));
-	}
-	
-	@TargetApi(Build.VERSION_CODES.HONEYCOMB)
-	private void addEpisodesSelectorFragment(EpisodeSelectorFragment fragment){
-		/*
-		FragmentManager fragmentManager = getFragmentManager();
-		FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-		EpisodeSelectorFragment fragment = new EpisodeSelectorFragment();
-		fragmentTransaction.add(R.id.show_settings_container, fragment);
-		fragmentTransaction.commit();
-		
-		fragment.setSeasonValue(String.valueOf(mShow.userSeason));
-		fragment.setEpisodeValue(String.valueOf(mShow.userEpisode));
-		*/
 	}
 
 	@Override
@@ -96,59 +77,21 @@ public class ShowSettingsActivity extends Activity {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.show_settings, menu);
 		return true;
-	}
-	
-	@TargetApi(Build.VERSION_CODES.HONEYCOMB)
-	public static class EpisodeSelectorFragment extends Fragment{
-		
-		private Show mShow;
-		
-		public static EpisodeSelectorFragment newInstance(int showId){
-			Bundle b = new Bundle();
-			b.putInt("showId", showId);
-			
-			EpisodeSelectorFragment f = new EpisodeSelectorFragment();
-			f.setArguments(b);
-			
-			return f;
-		}
-		
-		@Override
-		public View onCreateView(LayoutInflater inflater, ViewGroup container,
-				Bundle savedInstanceState) {
-			
-			
-			//int showId = getArguments().getInt("showId");
-			/*
-			int showId = 1;
-			Log.i(TAG, "Looking for show " + showId);
-			if(mShow != null && mShow.id != showId){
-				mShow = (Show) new DbShowsTable(getActivity()).get(showId);
-			}
-			
-			Log.i(TAG, "Inflating Fragment with show " + mShow.id);
-			*/
-			View view = inflater.inflate(R.layout.fragment_episode_selector,
-					container, false);
-			//Set the inital values
-			TextView seasonValue = (TextView) view.findViewById(R.id.season_selector_value);
-			seasonValue.setText("1");
-			TextView episodeValue = (TextView) view.findViewById(R.id.episode_selector_value);
-			episodeValue.setText("22");
+	} 
 
-			return view;
-		}
-		
-		public void setSeasonValue(String value){
-			TextView seasonValue = (TextView) getView().findViewById(R.id.season_selector_value);
-			seasonValue.setText(value);
-			
-		}
-		public void setEpisodeValue(String value){
-			TextView episodeValue = (TextView) getView().findViewById(R.id.episode_selector_value);
-			episodeValue.setText(value);
-			
-		}
+	@Override
+	public void onFinishEditSeasonDialog(String season) {
+		EpisodeSettingsFragment fragment = (EpisodeSettingsFragment) getSupportFragmentManager().findFragmentByTag("episodeSelector");
+		fragment.setSeasonValue(season);
 	}
 
+	@Override
+	public void onClick(View v) {
+		Log.i(TAG, "onClick handler invoked");
+		if(v.getId() == R.id.season_label || v.getId() == R.id.season_value){
+	        FragmentManager fm = getSupportFragmentManager();
+	        EditSeasonDialog editNameDialog = new EditSeasonDialog();
+	        editNameDialog.show(fm, "fragment_edit_season");
+		}
+	}
 }

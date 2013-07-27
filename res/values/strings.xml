@@ -13,5 +13,8 @@
     <string name="pref_header_general">General</string>
     <string name="connection_error">Error: Connection Failed</string>
     <string name="title_activity_show_settings">ShowSettingsActivity</string>
+    <string name="dialog_season_selector">Select a Season</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
 
 </resources>

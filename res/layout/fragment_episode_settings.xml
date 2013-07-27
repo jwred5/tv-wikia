@@ -6,24 +6,27 @@
     android:orientation="vertical" >
 
     <TextView
-        android:id="@+id/season_selector_label"
+        android:id="@+id/season_label"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/pref_season"
-        android:textAppearance="?android:attr/textAppearanceLarge" />
-
+        android:textAppearance="?android:attr/textAppearanceLarge" 
+        android:clickable="true"
+        android:onClick="onClick" />
     <TextView
-        android:id="@+id/season_selector_value"
+        android:id="@+id/season_value"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:clickable="true"
+        android:onClick="onClick" />
     <TextView
-        android:id="@+id/episode_selector_label"
+        android:id="@+id/episode_label"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/pref_episode"
         android:textAppearance="?android:attr/textAppearanceLarge" />
     <TextView
-        android:id="@+id/episode_selector_value"
+        android:id="@+id/episode_value"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"/>
 
