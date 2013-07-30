@@ -89,6 +89,15 @@ public class DatabaseService extends Service {
 	public void onDestroy(){
 		Log.i(TAG, "Destroying DatabaseService");
 	}
+
+
+	public Show getShow(int showId) {
+		return (Show) new DbShowsTable(getBaseContext()).get(showId);
+	}
+
+	public Show findShowByUrl(String url) {
+		return new DbShowsTable(getBaseContext()).findShowByUrl(url);
+	}
 	
 	public ArrayList<Record> getAllShows(){
 		return new DbShowsTable(getBaseContext()).list();

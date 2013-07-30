@@ -1,11 +1,13 @@
 package com.wikia.app.TvWikia;
 
+import com.wikia.app.TvWikia.DatabaseServiceConnection.DatabaseListener;
 import com.wikia.app.TvWikia.EpisodeSettingsFragment.EditSeasonDialog;
 import com.wikia.app.TvWikia.EpisodeSettingsFragment.EpisodeSettingsListener;
-import com.wikia.app.TvWikia.db.DbShowsTable;
+import com.wikia.app.TvWikia.db.DatabaseService;
 import com.wikia.app.TvWikia.db.DbShowsTable.Show;
 
 import android.os.Bundle;
+import android.content.Context;
 import android.content.Intent;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
@@ -13,31 +15,19 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 
-public class ShowSettingsActivity extends FragmentActivity implements EpisodeSettingsListener{
+public class ShowSettingsActivity extends FragmentActivity implements DatabaseListener, EpisodeSettingsListener{
 
 	private static final String TAG = "ShowSettingsActivity";
 	private Show mShow;
 
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		
-		Intent intent = getIntent();
-		intent.getIntExtra(BrowserActivity.SHOW_ID_MESSAGE, -1);
+	private final DatabaseServiceConnection mConnection = new DatabaseServiceConnection(this);
 
-		int showId = intent.getIntExtra(BrowserActivity.SHOW_ID_MESSAGE, -1);
-		DbShowsTable showsTable = new DbShowsTable(getBaseContext());
-		if(showId > 0){
-			mShow = (Show) showsTable.get(showId);
-		}
-		if(mShow == null){
-			Log.w(TAG, "Could not identify what show this is (id: " + showId + ")");
-		}
-		else{
-			Log.i(TAG, "We found out that this show is " + mShow.title + " (id: " + showId + ")");
-			
-			//Lookup what date in the past we need to show from
-		}
+	protected DatabaseService mService;
+	protected boolean mBound;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState){
+		super.onCreate(savedInstanceState);
 		
 		setContentView(R.layout.activity_show_settings);
 
@@ -64,9 +54,44 @@ public class ShowSettingsActivity extends FragmentActivity implements EpisodeSet
                     .add(R.id.show_settings_container, firstFragment, "episodeSelector").commit();
         }
 	}
+	@Override
+	protected void onStart() {
+		super.onStart();
+		// Bind to DatabaseService
+        Intent intent = new Intent(this, DatabaseService.class);
+        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+	}
 	
-	public void onResume(){
-		super.onResume();
+	@Override
+	public void setService(DatabaseService service){
+		this.mService = service;
+	}
+
+	@Override
+	public void onStop(){
+		super.onStop();
+		unbindService(mConnection);
+	}
+	
+	@Override
+	public void onServiceConnected(){
+		
+		Intent intent = getIntent();
+		intent.getIntExtra(BrowserActivity.SHOW_ID_MESSAGE, -1);
+
+		int showId = intent.getIntExtra(BrowserActivity.SHOW_ID_MESSAGE, -1);
+		if(showId > 0){
+			mShow = mService.getShow(showId);
+		}
+		if(mShow == null){
+			Log.w(TAG, "Could not identify what show this is (id: " + showId + ")");
+		}
+		else{
+			Log.i(TAG, "We found out that this show is " + mShow.title + " (id: " + showId + ")");
+			
+			//Lookup what date in the past we need to show from
+		}
+
 		EpisodeSettingsFragment fragment = (EpisodeSettingsFragment) getSupportFragmentManager().findFragmentByTag("episodeSelector");
 		fragment.setSeasonValue(String.valueOf(mShow.userSeason));
 		fragment.setEpisodeValue(String.valueOf(mShow.userEpisode));

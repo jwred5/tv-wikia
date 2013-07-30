@@ -12,20 +12,18 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 
+import com.wikia.app.TvWikia.DatabaseServiceConnection.DatabaseListener;
 import com.wikia.app.TvWikia.db.DatabaseService;
-import com.wikia.app.TvWikia.db.DatabaseService.DatabaseBinder;
 import com.wikia.app.TvWikia.db.DbBaseAdapter.Record;
 import com.wikia.app.TvWikia.db.DbShowsTable.Show;
 
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
@@ -36,11 +34,11 @@ import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.ImageButton;
 
-public class FrontDoorActivity extends Activity {
+public class FrontDoorActivity extends Activity implements DatabaseListener {
 
 	protected static final String TAG = "FrontDoorActivity";
+	private final DatabaseServiceConnection mConnection = new DatabaseServiceConnection(this);
 	protected DatabaseService mService;
-	protected boolean mBound;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -54,17 +52,34 @@ public class FrontDoorActivity extends Activity {
 		// Bind to DatabaseService
         Intent intent = new Intent(this, DatabaseService.class);
         bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+        
+        //Start the service, which will make it update the database.  Different and unrelated to binding
         startService(intent);
 	}
+
+	@Override
+	public void setService(DatabaseService service){
+		this.mService = service;
+	}
+
+	@Override
+	public void onStop(){
+		super.onStop();
+		unbindService(mConnection);
+	}
 	
-	protected void onServiceConnected(){
+	@Override
+	public void onServiceConnected(){
+		// Get all shows
 		ArrayList<Record> shows = mService.getAllShows();
-		//Create a banner for each show
+		
+		// Create a banner for each show
 		for(Record s : shows){
 			new CreateBannerTask().execute((Show) s);
 		}
-		unbindService(mConnection);
 	}
+	
+	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
@@ -153,24 +168,4 @@ public class FrontDoorActivity extends Activity {
 		  + statusCode + " - " + statusLine.getReasonPhrase());
 		}
 	}
-	/** Defines callbacks for service binding, passed to bindService() */
-    private ServiceConnection mConnection = new ServiceConnection() {
-
-        @Override
-        public void onServiceConnected(ComponentName className,
-                IBinder service) {
-            // We've bound to LocalService, cast the IBinder and get LocalService instance
-            DatabaseBinder binder = (DatabaseBinder) service;
-            mService = binder.getService();
-            
-            mBound = true;
-            
-            FrontDoorActivity.this.onServiceConnected();
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName arg0) {
-        	mBound = false;
-        }
-    };
 }

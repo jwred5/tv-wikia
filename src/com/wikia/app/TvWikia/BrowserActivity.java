@@ -1,9 +1,9 @@
 package com.wikia.app.TvWikia;
 
-import com.wikia.app.TvWikia.db.DbShowsTable;
+import com.wikia.app.TvWikia.DatabaseServiceConnection.DatabaseListener;
+import com.wikia.app.TvWikia.db.DatabaseService;
 import com.wikia.app.TvWikia.db.DbShowsTable.Show;
 
-import android.os.Bundle;
 import android.app.Activity;
 import android.util.Log;
 import android.view.Menu;
@@ -15,38 +15,74 @@ import android.webkit.WebViewClient;
 import android.support.v4.app.NavUtils;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.os.Bundle;
 
-public class BrowserActivity extends Activity {
+public class BrowserActivity extends Activity implements DatabaseListener{
 
 	private static final String TAG = "BrowserActivity";
 	
 	public static final String SHOW_ID_MESSAGE = "SHOW_ID";
 	
-	WebView webview;
+	
 	private Show mShow;
 	private String currentUrl;
 	
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
+	private final DatabaseServiceConnection mConnection = new DatabaseServiceConnection(this);
+
+	protected WebView webview;
+	protected DatabaseService mService;
+	protected boolean mBound;
+
+	public void onCreate(Bundle savedInstanceState){
 		super.onCreate(savedInstanceState);
 		
+		//Create the WebView
+		setupWebView();
+		
+		//Set the view to the webview
+		setContentView(webview);
+		
+		// Show the Up button in the action bar.
+		setupActionBar();
+	}
+	@Override
+	protected void onStart() {
+		super.onStart();
+		// Bind to DatabaseService
+        Intent intent = new Intent(this, DatabaseService.class);
+        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+	}
+	
+	@Override
+	public void setService(DatabaseService service){
+		this.mService = service;
+	}
+
+	@Override
+	public void onStop(){
+		super.onStop();
+		unbindService(mConnection);
+	}
+	
+	@Override
+	public void onServiceConnected(){
 		//Figure out what show we are looking at
 		Intent intent = getIntent();
-		
         final String action = intent.getAction();
+        
     	//Get the URL passed in to the intent
         final String url = intent.getDataString();
-        final DbShowsTable showsTable = new DbShowsTable(getBaseContext());
         
 		int showId = intent.getIntExtra(SHOW_ID_MESSAGE, -1);
 		if(showId > 0){
-			mShow = (Show) showsTable.get(showId);
+			mShow = mService.getShow(showId);
 		}
 		else{
 			//See if we can determine it from the URL.findShowByUrl(url);
-			mShow = showsTable.findShowByUrl(url);
+			mShow = mService.findShowByUrl(url);
 		}
 		if(mShow == null){
 			Log.w(TAG, "Could not identify what show this is (id: " + showId + ", url: " + url +")");
@@ -56,11 +92,6 @@ public class BrowserActivity extends Activity {
 			
 			//Lookup what date in the past we need to show from
 		}
-		//Create the WebView
-		setupWebView();
-		
-		//Set the view to the webview
-		setContentView(webview);
 		
 		//Load the data into the view
         if (Intent.ACTION_VIEW.equals(action)) {
@@ -73,8 +104,6 @@ public class BrowserActivity extends Activity {
         	webview.loadData("<div>No page sent</div>", "text/html", null);
         	currentUrl = null;
         }
-		// Show the Up button in the action bar.
-		setupActionBar();
 	}
 
 	/**
@@ -146,5 +175,4 @@ public class BrowserActivity extends Activity {
 			
 		return super.onOptionsItemSelected(item);
 	}
-
 }
