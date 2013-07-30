@@ -13,16 +13,19 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 
 import com.wikia.app.TvWikia.db.DatabaseService;
+import com.wikia.app.TvWikia.db.DatabaseService.DatabaseBinder;
 import com.wikia.app.TvWikia.db.DbBaseAdapter.Record;
-import com.wikia.app.TvWikia.db.DbShowsTable;
 import com.wikia.app.TvWikia.db.DbShowsTable.Show;
 
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.app.Activity;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
@@ -32,28 +35,36 @@ import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.ImageButton;
+
 public class FrontDoorActivity extends Activity {
 
 	protected static final String TAG = "FrontDoorActivity";
-	ImageButton imageButton;
+	protected DatabaseService mService;
+	protected boolean mBound;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_front_door);
-		
-		//Get a list of all the shows
-		ArrayList<Record> shows = new DbShowsTable(getBaseContext()).list();
-		
+	}
+
+	@Override
+	protected void onStart() {
+		super.onStart();
+		// Bind to DatabaseService
+        Intent intent = new Intent(this, DatabaseService.class);
+        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+        startService(intent);
+	}
+	
+	protected void onServiceConnected(){
+		ArrayList<Record> shows = mService.getAllShows();
 		//Create a banner for each show
 		for(Record s : shows){
 			new CreateBannerTask().execute((Show) s);
 		}
-		//Start the Service to update the database
-		Intent intent = new Intent();
-		intent.setComponent(new ComponentName(this, DatabaseService.class));
-		startService(intent);
+		unbindService(mConnection);
 	}
-
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
@@ -97,7 +108,7 @@ public class FrontDoorActivity extends Activity {
 		layout.addView(b);
 		Log.i(TAG, "Appended button for Show ID " + show.id + " to layout");
 	}
-
+	
     // Implementation of AsyncTask used to download XML feed from stackoverflow.com.
     private class CreateBannerTask extends AsyncTask<Show, Void, Bitmap> {
     	
@@ -142,4 +153,24 @@ public class FrontDoorActivity extends Activity {
 		  + statusCode + " - " + statusLine.getReasonPhrase());
 		}
 	}
+	/** Defines callbacks for service binding, passed to bindService() */
+    private ServiceConnection mConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className,
+                IBinder service) {
+            // We've bound to LocalService, cast the IBinder and get LocalService instance
+            DatabaseBinder binder = (DatabaseBinder) service;
+            mService = binder.getService();
+            
+            mBound = true;
+            
+            FrontDoorActivity.this.onServiceConnected();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+        	mBound = false;
+        }
+    };
 }

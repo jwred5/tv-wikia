@@ -17,6 +17,7 @@ import com.wikia.app.TvWikia.db.EpisodeParser.Entry;
 import android.app.Service;
 import android.content.Intent;
 import android.util.Log;
+import android.os.Binder;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -30,6 +31,13 @@ public class DatabaseService extends Service {
 	
 	private Looper mServiceLooper;
 	private ServiceHandler mServiceHandler;
+	private final IBinder mBinder = new DatabaseBinder();
+	
+	public class DatabaseBinder extends Binder{
+		public DatabaseService getService(){
+			return DatabaseService.this;
+		}
+	}
 	
 	private final class ServiceHandler extends Handler{
 		public ServiceHandler(Looper looper){
@@ -74,12 +82,16 @@ public class DatabaseService extends Service {
 	
 	@Override
 	public IBinder onBind(Intent intent){
-		return null;
+		return mBinder;
 	}
 	
 	@Override
 	public void onDestroy(){
 		Log.i(TAG, "Destroying DatabaseService");
+	}
+	
+	public ArrayList<Record> getAllShows(){
+		return new DbShowsTable(getBaseContext()).list();
 	}
 	
 	 // Loads xml from given url
