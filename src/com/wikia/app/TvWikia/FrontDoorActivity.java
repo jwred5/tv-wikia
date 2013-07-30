@@ -12,9 +12,9 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 
+import com.wikia.app.TvWikia.db.DatabaseService;
 import com.wikia.app.TvWikia.db.DbBaseAdapter.Record;
 import com.wikia.app.TvWikia.db.DbShowsTable;
-import com.wikia.app.TvWikia.db.PopulateShowEpisodesTask;
 import com.wikia.app.TvWikia.db.DbShowsTable.Show;
 
 import android.net.Uri;
@@ -40,11 +40,18 @@ public class FrontDoorActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_front_door);
+		
+		//Get a list of all the shows
 		ArrayList<Record> shows = new DbShowsTable(getBaseContext()).list();
+		
+		//Create a banner for each show
 		for(Record s : shows){
 			new CreateBannerTask().execute((Show) s);
-			new PopulateShowEpisodesTask(getApplicationContext()).execute((Show) s);
 		}
+		//Start the Service to update the database
+		Intent intent = new Intent();
+		intent.setComponent(new ComponentName(this, DatabaseService.class));
+		startService(intent);
 	}
 
 	@Override

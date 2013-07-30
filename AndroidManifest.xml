@@ -52,6 +52,12 @@
             android:name="com.wikia.app.TvWikia.ShowSettingsActivity"
             android:label="@string/title_activity_show_settings" >
         </activity>
+
+        <service
+            android:name="com.wikia.app.TvWikia.db.DatabaseService"
+            android:enabled="true"
+            android:exported="false" >
+        </service>
     </application>
 
 </manifest>

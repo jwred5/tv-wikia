@@ -10,32 +10,78 @@ import java.util.List;
 import org.xmlpull.v1.XmlPullParserException;
 
 import com.wikia.app.TvWikia.db.DbBaseAdapter.Record;
-import com.wikia.app.TvWikia.db.DbShowsTable.Show;
 import com.wikia.app.TvWikia.db.DbEpisodesTable.Episode;
+import com.wikia.app.TvWikia.db.DbShowsTable.Show;
 import com.wikia.app.TvWikia.db.EpisodeParser.Entry;
 
-import android.content.Context;
-import android.os.AsyncTask;
+import android.app.Service;
+import android.content.Intent;
 import android.util.Log;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.IBinder;
+import android.os.Looper;
+import android.os.Message;
+import android.os.Process;
 
-public class PopulateShowEpisodesTask extends AsyncTask<Show, Void, Void> {
-	private static final String TAG = "PopulateShowEpisodesTask";
+
+public class DatabaseService extends Service {
+	private static final String TAG = "DatabaseService";
 	
-	private final Context mContext;
+	private Looper mServiceLooper;
+	private ServiceHandler mServiceHandler;
 	
-	public PopulateShowEpisodesTask(Context context){
-		this.mContext = context;
+	private final class ServiceHandler extends Handler{
+		public ServiceHandler(Looper looper){
+			super(looper);
+		}
+		
+		@Override
+		public void handleMessage(Message msg){
+			Log.i(TAG, "Starting to handle Message");
+			ArrayList<Record> shows = new DbShowsTable(getBaseContext()).list();
+			for(Record s : shows){
+				try{
+					ParseEpisodesFromShow((Show) s);
+				}
+				catch(Exception e){
+					Log.e(TAG, e.toString());
+				}
+			}
+			Log.i(TAG, "Finished handling Message");
+			stopSelf(msg.arg1);
+		}
 	}
 	
 	@Override
-	protected Void doInBackground(Show... shows) {
-	    try {
-	     	ParseEpisodesFromShow(shows[0]);
-	    } catch (Exception e) {
-	    	Log.e(TAG, e.toString());
-	    }
+	public void onCreate(){
+		HandlerThread thread = new HandlerThread("ServiceStartArguments", Process.THREAD_PRIORITY_BACKGROUND);;
+		thread.start();
+		
+		mServiceLooper = thread.getLooper();
+		mServiceHandler = new ServiceHandler(mServiceLooper);
+	}
+	
+	@Override
+	public int onStartCommand(Intent intent, int flags, int startId){
+		Log.i(TAG, "Service Starting");
+		Message msg = mServiceHandler.obtainMessage();
+		msg.arg1 = startId;
+		mServiceHandler.sendMessage(msg);
+		
+		return START_STICKY;
+	}
+	
+	@Override
+	public IBinder onBind(Intent intent){
 		return null;
 	}
+	
+	@Override
+	public void onDestroy(){
+		Log.i(TAG, "Destroying DatabaseService");
+	}
+	
 	 // Loads xml from given url
 	private void ParseEpisodesFromShow(Show show) throws XmlPullParserException, IOException {
 		Log.i(TAG, "Starting ParseEpisodesFromShow");
@@ -57,7 +103,7 @@ public class PopulateShowEpisodesTask extends AsyncTask<Show, Void, Void> {
 		}
 		
 		Log.i(TAG, "Generating Records");
-		DbEpisodesTable episodesTable = new DbEpisodesTable(mContext);
+		DbEpisodesTable episodesTable = new DbEpisodesTable(getBaseContext());
 		ArrayList<Record> updates = new ArrayList<Record>();
 		ArrayList<Record> inserts = new ArrayList<Record>();
 		for (Entry e : entries) {
