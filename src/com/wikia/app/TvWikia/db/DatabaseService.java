@@ -26,7 +26,12 @@ import android.os.Message;
 import android.os.Process;
 
 
+
+/*
+ * This Service Handles all Database interactions.  Thus, we completely close the database when the service is destroyed.
+ */
 public class DatabaseService extends Service {
+	
 	private static final String TAG = "DatabaseService";
 	
 	private Looper mServiceLooper;
@@ -63,6 +68,7 @@ public class DatabaseService extends Service {
 	
 	@Override
 	public void onCreate(){
+		Log.i(TAG, "Creating DatabaseService");
 		HandlerThread thread = new HandlerThread("ServiceStartArguments", Process.THREAD_PRIORITY_BACKGROUND);;
 		thread.start();
 		
@@ -72,7 +78,7 @@ public class DatabaseService extends Service {
 	
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId){
-		Log.i(TAG, "Service Starting");
+		Log.i(TAG, "Starting DatabaseService");
 		Message msg = mServiceHandler.obtainMessage();
 		msg.arg1 = startId;
 		mServiceHandler.sendMessage(msg);
@@ -82,12 +88,14 @@ public class DatabaseService extends Service {
 	
 	@Override
 	public IBinder onBind(Intent intent){
+		Log.i(TAG, "Binding DatabaseService");
 		return mBinder;
 	}
 	
 	@Override
 	public void onDestroy(){
 		Log.i(TAG, "Destroying DatabaseService");
+		new DbShowsTable(getBaseContext()).closeDb(true);
 	}
 
 
@@ -103,6 +111,22 @@ public class DatabaseService extends Service {
 		return new DbShowsTable(getBaseContext()).list();
 	}
 	
+	// Given a string representation of a URL, sets up a connection and gets
+	// the contents.
+	 private InputStream downloadUrl(String urlString) throws IOException {
+		 URL url = new URL(urlString);
+		 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+		 conn.setReadTimeout(10000 /* milliseconds */);
+		 conn.setConnectTimeout(15000 /* milliseconds */);
+		 conn.setRequestMethod("GET");
+		 conn.setDoInput(true);
+		 // Starts the query
+	     conn.connect();
+	     return conn.getInputStream();
+	}
+
+	 
+	 // Write Operations need to be synchronized
 	 // Loads xml from given url
 	private void ParseEpisodesFromShow(Show show) throws XmlPullParserException, IOException {
 		Log.i(TAG, "Starting ParseEpisodesFromShow");
@@ -142,22 +166,26 @@ public class DatabaseService extends Service {
 				}
 			}
 		}
-		episodesTable.update(updates);
-		episodesTable.insert(inserts);
+		// Synchronize the writes
+		synchronized(this){
+			episodesTable.update(updates);
+			episodesTable.insert(inserts);
+		}
 		Log.i(TAG, "Records Generated");
 		     return;
 	}
-	// Given a string representation of a URL, sets up a connection and gets
-	// the contents.
-	 private InputStream downloadUrl(String urlString) throws IOException {
-		 URL url = new URL(urlString);
-		 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-		 conn.setReadTimeout(10000 /* milliseconds */);
-		 conn.setConnectTimeout(15000 /* milliseconds */);
-		 conn.setRequestMethod("GET");
-		 conn.setDoInput(true);
-		 // Starts the query
-	     conn.connect();
-	     return conn.getInputStream();
+	
+	// Synchronize the write
+	public void updateSeason(Show show, String season) {
+		synchronized(this){
+			new DbShowsTable(getBaseContext()).updateSeason(show.id, season);
+		}
+	}
+
+	// Synchronize the write
+	public void updateEpisode(Show show, String episode) {
+		synchronized(this){
+			new DbShowsTable(getBaseContext()).updateEpisode(show.id, episode);
+		}
 	}
 }

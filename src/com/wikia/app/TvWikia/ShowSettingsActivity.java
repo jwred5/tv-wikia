@@ -108,6 +108,7 @@ public class ShowSettingsActivity extends FragmentActivity implements DatabaseLi
 	public void onFinishEditSeasonDialog(String season) {
 		EpisodeSettingsFragment fragment = (EpisodeSettingsFragment) getSupportFragmentManager().findFragmentByTag("episodeSelector");
 		fragment.setSeasonValue(season);
+		mService.updateSeason(mShow, season);
 	}
 
 	@Override

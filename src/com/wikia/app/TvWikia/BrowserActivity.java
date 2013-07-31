@@ -95,9 +95,12 @@ public class BrowserActivity extends Activity implements DatabaseListener{
 		
 		//Load the data into the view
         if (Intent.ACTION_VIEW.equals(action)) {
-        	//Load the URL
-    		webview.loadUrl(url);
-            currentUrl = url;
+        	if(!url.equals(currentUrl)){
+        		Log.i(TAG, "Loading new url " + url);
+	        	//Load the URL
+	    		webview.loadUrl(url);
+	            currentUrl = url;
+        	}
         }
         else{
         	//Load the no URL message

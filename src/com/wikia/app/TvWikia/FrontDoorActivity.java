@@ -44,11 +44,7 @@ public class FrontDoorActivity extends Activity implements DatabaseListener {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_front_door);
-	}
-
-	@Override
-	protected void onStart() {
-		super.onStart();
+		
 		// Bind to DatabaseService
         Intent intent = new Intent(this, DatabaseService.class);
         bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
@@ -83,7 +79,7 @@ public class FrontDoorActivity extends Activity implements DatabaseListener {
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.front_door, menu);
+		//getMenuInflater().inflate(R.menu.front_door, menu);
 		return true;
 	}
 	

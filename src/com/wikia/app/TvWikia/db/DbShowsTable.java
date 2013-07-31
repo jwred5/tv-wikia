@@ -59,6 +59,41 @@ public class DbShowsTable extends DbBaseAdapter {
 		closeDb();
 		return show;
 	}
+	
+	public boolean updateSeason(int showId, String season){
+
+		ContentValues differences = new ContentValues();
+		differences.put(Shows.COLUMN_NAME_USER_SEASON, season);
+		final String selection = myIdColumn() + " = ?";
+		final String[] selectionArgs = {String.valueOf(showId)};
+		SQLiteDatabase db = openDb();
+		int count = db.update(
+				myTableName(),
+				differences,
+			    selection,
+			    selectionArgs);
+		boolean success = (count == 1);
+		closeDb();
+		
+		return success;
+	}
+	public boolean updateEpisode(int showId, String episode){
+
+		ContentValues differences = new ContentValues();
+		differences.put(Shows.COLUMN_NAME_USER_EPISODE, episode);
+		final String selection = myIdColumn() + " = ?";
+		final String[] selectionArgs = {String.valueOf(showId)};
+		SQLiteDatabase db = openDb();
+		int count = db.update(
+				myTableName(),
+				differences,
+			    selection,
+			    selectionArgs);
+		boolean success = (count == 1);
+		closeDb();
+		
+		return success;
+	}
 
 	@Override
 	protected Record parseRecord(Cursor c) {

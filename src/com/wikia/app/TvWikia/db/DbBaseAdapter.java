@@ -57,14 +57,30 @@ public abstract class DbBaseAdapter {
 	}
 	
 	public SQLiteDatabase openDb(){
-		if(mDbHelper == null){
-			mDbHelper = new DatabaseHelper(mContext);
+		synchronized(this){
+			if(mDbHelper == null){
+				mDbHelper = new DatabaseHelper(mContext);
+			}
+			return mDbHelper.getWritableDatabase();
 		}
-		return mDbHelper.getWritableDatabase();
 	}
-	
+
 	public void closeDb(){
-		mDbHelper.close();
+		closeDb(false);
+	}
+	public void closeDb(boolean force){
+		synchronized(this){
+			
+			if(mDbHelper != null){
+				if(force){
+					mDbHelper.close();
+					mDbHelper = null;
+				}
+				else if(mDbHelper.closeCheck()){
+					mDbHelper = null;
+				}
+			}
+		}
 	}
 
 	protected abstract Record parseRecord(Cursor c);
@@ -257,8 +273,30 @@ public abstract class DbBaseAdapter {
 	// Define static DatabaseHelper so that we will always have one connection to the DB
 	// This prevents concurrent write failures.
 	protected static class DatabaseHelper extends SQLiteOpenHelper{
+		private int databaseRefs = 0;
+		
 		public DatabaseHelper(Context context){
 			super(context, DATABASE_NAME, null, DATABASE_VERSION);
+		}
+		
+		//Keep track of how many database references are out there
+		@Override
+		public SQLiteDatabase getWritableDatabase(){
+			Log.i(TAG, "Opening Database Reference (Currently open: " + databaseRefs + ")");
+			databaseRefs++;
+			return super.getWritableDatabase();
+		}
+		
+		//Check if there are any open references before closing
+		public boolean closeCheck(){
+			Log.i(TAG, "Closing Database Reference (Currently open: " + databaseRefs + ")");
+			databaseRefs--;
+			if(databaseRefs <= 0){
+				Log.i(TAG, "No more references.  Closing Database completely");
+				super.close();
+				return true;
+			}
+			return false;
 		}
 
 		@Override
