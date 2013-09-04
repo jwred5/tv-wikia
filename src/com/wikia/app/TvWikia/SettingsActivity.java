@@ -1,7 +1,17 @@
 package com.wikia.app.TvWikia;
 
+import java.util.ArrayList;
+
+import com.wikia.app.TvWikia.DatabaseServiceConnection.DatabaseListener;
+import com.wikia.app.TvWikia.db.DbBaseAdapter.Record;
+import com.wikia.app.TvWikia.db.DatabaseService;
+import com.wikia.app.TvWikia.db.DbShowsTable;
+import com.wikia.app.TvWikia.db.DbShowsTable.Show;
+
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.res.Configuration;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
@@ -11,12 +21,16 @@ import android.os.Bundle;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
+import android.preference.PreferenceCategory;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
+import android.preference.PreferenceScreen;
 import android.preference.RingtonePreference;
 import android.text.TextUtils;
+import android.util.AttributeSet;
+import android.util.Log;
 
-public class SettingsActivity extends PreferenceActivity {
+public class SettingsActivity extends PreferenceActivity implements DatabaseListener {
 	/**
 	 * Determines whether to always show the simplified settings UI, where
 	 * settings are presented in a single list. When false, settings are shown
@@ -24,11 +38,32 @@ public class SettingsActivity extends PreferenceActivity {
 	 * shown on tablets.
 	 */
 	private static final boolean ALWAYS_SIMPLE_PREFS = false;
+	private static final String TAG = "Settings Activity";
+	private DatabaseServiceConnection mConnection = new DatabaseServiceConnection(this);
+	private DatabaseService mService;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState){
 		super.onCreate(savedInstanceState);
 		setupSimplePreferencesScreen();
+	}
+	
+	@Override
+	protected void onStart() {
+		super.onStart();
+		// Bind to DatabaseService
+        Intent intent = new Intent(this, DatabaseService.class);
+        bindService(intent, mConnection , Context.BIND_AUTO_CREATE);
+	}
+	@Override
+	public void onStop(){
+		super.onStop();
+		try{
+		unbindService(mConnection);
+		}
+		catch(Exception e){
+			Log.i(TAG, e.toString());
+		}
 	}
 	/**
 	 * Shows the simplified settings UI if the device configuration if the
@@ -46,10 +81,70 @@ public class SettingsActivity extends PreferenceActivity {
 
 		// Add 'general' preferences.
 		addPreferencesFromResource(R.xml.pref_general);
-		bindPreferenceSummaryToValue(findPreference("tardis_season"));
-		bindPreferenceSummaryToValue(findPreference("tardis_episode"));
 	}
 
+	private void addSeasonSelectors(PreferenceScreen screen){
+
+		//Add each show's set of preferences
+		ArrayList<Record> shows = new DbShowsTable(this).list();
+		for(Record s : shows){
+			Show show = (Show) s;
+			//Create the Preference Header
+
+			PreferenceCategory fakeHeader = new PreferenceCategory(this);
+			fakeHeader.setTitle("Show " + show.title);
+			screen.addPreference(fakeHeader);
+			ListPreference seasonPreference = new ListPreference(this);
+			seasonPreference.setTitle("Season");
+			int numSeasons = 7;
+			String[] entries = new String[numSeasons];
+			String[] entryValues = new String[numSeasons];
+			for(int i=0; i<numSeasons ;i++){
+				entries[i] = "Season " + String.valueOf(i+1);
+				entryValues[i] = String.valueOf(i+1);
+			}
+			seasonPreference.setEntries(entries);
+			seasonPreference.setEntryValues(entryValues);
+			seasonPreference.setPersistent(false);
+			if(show.userSeason > 0){
+				seasonPreference.setDefaultValue(entryValues[show.userSeason]);
+				seasonPreference.setSummary(entries[show.userSeason]);
+			}
+			else{
+				seasonPreference.setSummary("Choose a season");
+			}
+			bindSeasonListenerToPreference(show, seasonPreference);
+			screen.addPreference(seasonPreference);
+		}
+	}
+	
+	private void bindSeasonListenerToPreference(final Show show, ListPreference seasonPreference) {
+		final DatabaseService service = mService;
+		seasonPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+
+		@Override
+		public boolean onPreferenceChange(Preference preference, Object value) {
+			String stringValue = value.toString();
+
+			//Update the value in the database
+			service.updateSeason(show, stringValue);
+			
+			if (preference instanceof ListPreference) {
+				// For list preferences, look up the correct display value in
+				// the preference's 'entries' list.
+				ListPreference listPreference = (ListPreference) preference;
+				int index = listPreference.findIndexOfValue(stringValue);
+
+				// Set the summary to reflect the new value.
+				preference
+						.setSummary(index >= 0 ? listPreference.getEntries()[index]
+								: null);
+
+			}
+			return true;
+		}});
+		
+	}
 	/** {@inheritDoc} */
 	@Override
 	public boolean onIsMultiPane() {
@@ -169,5 +264,16 @@ public class SettingsActivity extends PreferenceActivity {
 			bindPreferenceSummaryToValue(findPreference("tardis_season"));
 			bindPreferenceSummaryToValue(findPreference("tardis_episode"));
 		}
+	}
+
+	@Override
+	public void onServiceConnected() {
+		addSeasonSelectors(this.getPreferenceScreen());
+	}
+
+	@Override
+	public void setService(DatabaseService service) {
+		mService = service;
+		
 	}
 }
